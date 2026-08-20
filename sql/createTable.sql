@@ -1,5 +1,5 @@
 -- Use the existing database
-USE if0_40214729_blognest_db;
+USE blog_app;
 
 -- users table
 CREATE TABLE IF NOT EXISTS users (
