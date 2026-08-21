@@ -1,11 +1,15 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
+
+// Get flash message for this page
+$flash = get_flash();
+
 // Redirect if already logged in
 if (is_logged_in()) {
     redirect('index.php');
 }
-require_once __DIR__ . '/includes/header.php';
 
+require_once __DIR__ . '/includes/header.php';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     check_csrf();
@@ -26,23 +30,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash('success', 'Login successful.');
             redirect('index.php');
         } else { 
-            set_flash('error', 'Invalid credentials.');
+            set_flash('error', 'The email or password you entered is incorrect. Please try again.');
         }
     }
 }
 ?>
 
-<h2>Log in</h2>
-<br>
-<form method="post" class="form" autocomplete="off">
-  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-  
-  <!-- Hidden fake field to prevent autofill -->
-  <input type="text" style="display:none">
-  
-  <label>Email <input type="email" name="email" required autocomplete="new-email"></label>
-  <label>Password <input type="password" name="password" required autocomplete="new-password"></label>
-  <button type="submit">Log in</button>
-</form>
+<div class="auth-page">
+
+    <div class="auth-card">
+
+        <div class="auth-header">
+            <span class="auth-label">WELCOME BACK</span>
+
+            <h2>Sign in to BlogNest</h2>
+
+            <p>
+                Welcome back. Enter your details to continue.
+            </p>
+        </div>
+
+        <?php if ($flash): ?>
+
+    <div class="flash <?= sanitize($flash['type']) ?>">
+        <?= sanitize($flash['msg']) ?>
+    </div>
+
+<?php endif; ?>
+
+        <form method="post" class="auth-form" autocomplete="off">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= csrf_token() ?>"
+            >
+
+            <!-- Hidden fake field to prevent autofill -->
+            <input type="text" style="display:none">
+
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    required
+                    autocomplete="new-email"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <button type="submit" class="auth-submit">
+                Sign In
+            </button>
+
+        </form>
+
+
+        <div class="auth-footer">
+
+            <p>
+                Don't have an account?
+                <a href="register.php">Sign Up</a>
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

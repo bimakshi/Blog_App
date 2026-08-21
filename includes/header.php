@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/functions.php';
-$flash = get_flash();
 ?>
 
 <!doctype html>
@@ -19,74 +18,44 @@ $flash = get_flash();
 
     <div class="container">
 
-        <!-- Logo -->
-        <a href="<?= BASE_URL ?>" class="logo">
-            BlogNest
-        </a>
+        <h1 class="logo">BlogNest</h1>
 
-
-        <!-- Navigation -->
         <nav class="nav">
 
-            <?php if (is_logged_in()): ?>
+    <?php if (is_logged_in()): ?>
 
-                <!-- Navigation for logged-in users -->
+        <a href="index.php" class="nav-link">Home</a>
 
-                <a href="index.php" class="nav-link">
-                    Home
-                </a>
+        <a href="explore.php" class="nav-link">Explore</a>
 
-                <a href="#" class="nav-link">
-                    Explore
-                </a>
+        <a href="myblogs.php" class="nav-link">My Blogs</a>
 
-                <a href="myblogs.php" class="nav-link">
-                    My Blogs
-                </a>
+        <a href="create.php" class="write-btn">
+            Write a Story
+        </a>
 
-                <a href="create.php" class="write-btn">
-                    Write a Story
-                </a>
+        <a href="logout.php" class="nav-link logout-link">
+            Sign Out
+        </a>
 
-                <a href="logout.php" class="nav-link logout-link">
-                    Log out
-                </a>
+    <?php else: ?>
 
-            <?php else: ?>
+        <a href="index.php" class="nav-link">Home</a>
 
-                <!-- Navigation for visitors -->
+        <a href="explore.php" class="nav-link">Explore</a>
 
-                <a href="index.php" class="nav-link">
-                    Home
-                </a>
+        <a href="login.php" class="nav-link">Sign In</a>
 
-                <a href="#" class="nav-link">
-                    Explore
-                </a>
+        <a href="register.php" class="write-btn">
+            Sign Up
+        </a>
 
-                <a href="login.php" class="nav-link">
-                    Log in
-                </a>
+    <?php endif; ?>
 
-                <a href="register.php" class="write-btn">
-                    Create Account
-                </a>
-
-            <?php endif; ?>
-
-        </nav>
+</nav>
 
     </div>
 
 </header>
 
-
 <main class="container">
-
-<?php if ($flash): ?>
-
-    <div class="flash <?= sanitize($flash['type']) ?>">
-        <?= sanitize($flash['msg']) ?>
-    </div>
-
-<?php endif; ?>

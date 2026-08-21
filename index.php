@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
-require_login();
 require_once __DIR__ . '/includes/header.php';
 
 // Fetch latest blogs
@@ -13,20 +12,50 @@ $blogs = $stmt->fetchAll();
 <!-- Hero Section -->
 <section class="hero">
 
-    <span class="hero-label">WELCOME TO BLOGNEST</span>
+    <div class="hero-content">
 
-    <h2>Discover ideas.<br>Share your stories.</h2>
+        <span class="hero-label">
+            WELCOME TO BLOGNEST
+        </span>
 
-    <p>
-        A place to read, write, and share stories that matter.
-    </p>
+        <h2>
+            Write. Share. <span>Discover.</span>
+        </h2>
 
-    <a href="#latest-blogs" class="hero-btn">
-        Explore Articles <span>→</span>
-    </a>
+        <p>
+            A simple place to share your ideas, tell your stories,
+            and discover perspectives from other writers.
+        </p>
+
+        <div class="hero-actions">
+
+            <?php if (is_logged_in()): ?>
+
+                <a href="create.php" class="hero-btn primary">
+                    Write a Story
+                </a>
+
+                <a href="explore.php" class="hero-btn secondary">
+                    Explore Stories
+                </a>
+
+            <?php else: ?>
+
+                <a href="register.php" class="hero-btn primary">
+                    Start Writing
+                </a>
+
+                <a href="explore.php" class="hero-btn secondary">
+                    Explore Stories
+                </a>
+
+            <?php endif; ?>
+
+        </div>
+
+    </div>
 
 </section>
-
 
 <!-- Latest Blogs -->
 <section id="latest-blogs" class="latest-section">
