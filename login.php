@@ -1,9 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
 
-// Get flash message for this page
-$flash = get_flash();
-
 // Redirect if already logged in
 if (is_logged_in()) {
     redirect('index.php');
@@ -34,6 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Get flash message for this page
+$flash = get_flash();
+
 ?>
 
 <div class="auth-page">
