@@ -1,2 +1,2 @@
-# Make welcome.php the default page
-DirectoryIndex welcome.php index.php
+# Make index.php the default page
+DirectoryIndex index.php
