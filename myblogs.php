@@ -34,10 +34,6 @@ require_once __DIR__ . '/includes/header.php';
             </p>
         </div>
 
-        <a href="create.php" class="my-blogs-write-btn">
-        Write a Story
-        </a>
-
     </div>
 
 
@@ -119,13 +115,31 @@ require_once __DIR__ . '/includes/header.php';
                                 Edit
                             </a>
 
-                            <a
-                                href="delete.php?id=<?= $b['id'] ?>"
-                                class="my-blog-delete"
-                                onclick="return confirm('Are you sure you want to delete this story?');"
-                            >
-                                Delete
-                            </a>
+                            <form
+    method="post"
+    action="delete.php"
+    class="my-blog-delete-form"
+    onsubmit="return openDeleteModal(this);"
+>
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="<?= csrf_token() ?>"
+    >
+
+    <input
+        type="hidden"
+        name="id"
+        value="<?= $b['id'] ?>"
+    >
+
+    <button
+        type="submit"
+        class="my-blog-delete"
+    >
+        Delete
+    </button>
+</form>
 
                         </div>
 
@@ -140,5 +154,70 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
 </section>
+
+<div id="deleteModal" class="delete-modal">
+
+    <div class="delete-modal-content">
+
+        <h3>Delete Story?</h3>
+
+        <p>
+            Are you sure you want to delete this story? <br>
+            This action cannot be undone.
+        </p>
+
+        <div class="delete-modal-actions">
+
+            <button
+                type="button"
+                class="delete-cancel-btn"
+                onclick="closeDeleteModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="delete-confirm-btn"
+                onclick="confirmDelete()"
+            >
+                Delete
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+let deleteForm = null;
+
+function openDeleteModal(form) {
+
+    deleteForm = form;
+
+    document.getElementById('deleteModal').classList.add('show');
+
+    return false;
+}
+
+function closeDeleteModal() {
+
+    document.getElementById('deleteModal').classList.remove('show');
+
+    deleteForm = null;
+}
+
+function confirmDelete() {
+
+    if (deleteForm) {
+        deleteForm.submit();
+    }
+
+}
+
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

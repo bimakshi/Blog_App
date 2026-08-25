@@ -1172,3 +1172,70 @@ a {
     }
 
 }
+
+/* Delete confirmation modal */
+
+.delete-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.delete-modal.show {
+    display: flex;
+}
+
+.delete-modal-content {
+    width: 90%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.delete-modal-content h3 {
+    margin: 0 0 12px;
+    font-size: 24px;
+}
+
+.delete-modal-content p {
+    margin: 0 0 25px;
+    line-height: 1.6;
+    color: #666;
+}
+
+.delete-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.delete-cancel-btn,
+.delete-confirm-btn {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.delete-cancel-btn {
+    background: #eeeeee;
+    color: #333;
+}
+
+.delete-confirm-btn {
+    background: #d9534f;
+    color: #ffffff;
+}
+
+.delete-cancel-btn:hover,
+.delete-confirm-btn:hover {
+    opacity: 0.9;
+}

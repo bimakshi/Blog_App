@@ -1,30 +1,56 @@
 <?php
-// delete.php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
+
 require_login();
 
-// Get blog ID from query parameter
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$stmt = $pdo->prepare("SELECT user_id FROM blogs WHERE id = ? LIMIT 1");   
-$stmt->execute([$id]);   
-$blog = $stmt->fetch();
-
-// Check if blog exists
-if (!$blog) {
-    set_flash('error', 'Blog not found.');   
-    header('Location: myblogs.php'); exit;   
+// Only allow POST requests for deleting stories
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect('myblogs.php');
 }
 
-// Authorization check
-if ($blog['user_id'] != current_user_id()) {   
-    set_flash('error', 'Not authorized.');     
-    header('Location: myblogs.php'); exit;    
+// Check CSRF token
+check_csrf();
+
+// Get blog ID from POST
+$id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+
+if (!$id) {
+    set_flash('error', 'Invalid story.');
+    redirect('myblogs.php');
+}
+
+// Check that the blog belongs to the logged-in user
+$stmt = $pdo->prepare(
+    "SELECT id
+     FROM blogs
+     WHERE id = ?
+     AND user_id = ?"
+);
+
+$stmt->execute([
+    $id,
+    current_user_id()
+]);
+
+$blog = $stmt->fetch();
+
+// Blog doesn't exist or doesn't belong to current user
+if (!$blog) {
+    set_flash('error', 'Story not found or you do not have permission to delete it.');
+    redirect('myblogs.php');
 }
 
 // Delete the blog
-$stmt = $pdo->prepare("DELETE FROM blogs WHERE id = ?");   
-$stmt->execute([$id]);  
-set_flash('success', 'Blog deleted.');  
-header('Location: myblogs.php'); exit;   
-?>
+$stmt = $pdo->prepare(
+    "DELETE FROM blogs
+     WHERE id = ?
+     AND user_id = ?"
+);
+
+$stmt->execute([
+    $id,
+    current_user_id()
+]);
+
+redirect('myblogs.php');

@@ -35,9 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get flash message AFTER processing the form
-$flash = get_flash();
-
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -54,16 +51,6 @@ require_once __DIR__ . '/includes/header.php';
         </p>
 
     </div>
-
-
-    <?php if ($flash): ?>
-
-        <div class="flash <?= sanitize($flash['type']) ?>">
-            <?= sanitize($flash['msg']) ?>
-        </div>
-
-    <?php endif; ?>
-
 
     <div class="write-card">
 
