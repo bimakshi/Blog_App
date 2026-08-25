@@ -1,56 +1,161 @@
 <?php
-// edit.php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
-require_login();
-require_once __DIR__ . '/includes/header.php';
 
-// Get blog ID from query parameter
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;  
-$stmt = $pdo->prepare("SELECT * FROM blogs WHERE id = ? LIMIT 1");  //Fetch blog to edit
-$stmt->execute([$id]);
+// Only logged-in users can edit stories
+require_login();
+
+// Get blog ID from URL
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+// Check if a valid ID was provided
+if (!$id) {
+    set_flash('error', 'Invalid story.');
+    redirect('myblogs.php');
+}
+
+// Get the blog and make sure it belongs to the logged-in user
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM blogs
+     WHERE id = ?
+     AND user_id = ?"
+);
+
+$stmt->execute([
+    $id,
+    current_user_id()
+]);
+
 $blog = $stmt->fetch();
 
-// Check if blog exists
+// Blog doesn't exist or doesn't belong to this user
 if (!$blog) {
-    set_flash('error', 'Blog not found.');
-    header('Location: myblogs.php'); exit;
+    set_flash('error', 'Story not found or you do not have permission to edit it.');
+    redirect('myblogs.php');
 }
 
-// Authorization check
-if ($blog['user_id'] != current_user_id()) {
-    set_flash('error', 'You are not authorized to edit this blog.');
-    header('Location: myblogs.php'); exit;
-}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Check CSRF token
     check_csrf();
+
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
 
     // Validate input
     if ($title === '' || $content === '') {
-        set_flash('error', 'Title and content required.');
+
+        set_flash('error', 'Please enter both a story title and content.');
+
     } else {
-        $stmt = $pdo->prepare("UPDATE blogs SET title=?, content=?, updated_at = NOW() WHERE id=?");
-        $stmt->execute([$title, $content, $id]);
-        set_flash('success', 'Blog updated.');
-        header('Location: myblogs.php'); exit;
+
+        // Update the blog
+        $stmt = $pdo->prepare(
+            "UPDATE blogs
+             SET title = ?, content = ?, updated_at = NOW()
+             WHERE id = ?
+             AND user_id = ?"
+        );
+
+        $stmt->execute([
+            $title,
+            $content,
+            $id,
+            current_user_id()
+        ]);
+
+        set_flash('success', 'Your story has been updated.');
+
+        redirect('myblogs.php');
     }
+
+    // Keep the user's entered values if validation fails
+    $blog['title'] = $title;
+    $blog['content'] = $content;
 }
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
-<h2>Edit Blog</h2>
-<br>
+<section class="write-page">
 
-<form method="post" class="form">
+    <div class="write-header">
 
-  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-  <label>Title <input type="text" name="title" required value="<?= sanitize($blog['title']) ?>"></label>
-  <label>Content <textarea name="content" rows="10" required><?= sanitize($blog['content']) ?></textarea></label>
-  <button type="submit">Update</button>
+        <span class="write-label">EDIT YOUR STORY</span>
 
-</form>
+        <h2>Edit Story</h2>
 
-<?php require_once __DIR__ . '/includes/footer.php'; ?> 
+        <p>
+            Update your story and keep sharing your ideas with the BlogNest community.
+        </p>
+
+    </div>
+
+    <div class="write-card">
+
+        <form method="post" class="write-form">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= csrf_token() ?>"
+            >
+
+
+            <div class="form-group">
+
+                <label for="title">
+                    Story Title
+                </label>
+
+                <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    placeholder="Give your story a title..."
+                    value="<?= sanitize($blog['title']) ?>"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="content">
+                    Your Story
+                </label>
+
+                <textarea
+                    id="content"
+                    name="content"
+                    rows="14"
+                    placeholder="Start writing your story..."
+                    required
+                ><?= sanitize($blog['content']) ?></textarea>
+
+            </div>
+
+
+            <div class="write-actions">
+
+                <span class="draft-note">
+                    Your changes will be saved immediately.
+                </span>
+
+                <button type="submit" class="publish-btn">
+                    Update Story
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
