@@ -1,31 +1,65 @@
 <?php
-// single.php
 require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/functions.php';
 
-// Get blog ID from query parameter
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) {
-    set_flash('error', 'Invalid blog ID.');
-    header('Location: index.php');
-    exit;
+// Get blog ID from the URL
+$blog_id = $_GET['id'] ?? null;
+
+// Check that an ID was provided
+if ($blog_id === null) {
+    die('Blog not found.');
 }
 
-// Fetch blog details
-$stmt = $pdo->prepare("SELECT b.*, u.username FROM blogs b JOIN users u ON b.user_id = u.id WHERE b.id = ?");
-$stmt->execute([$id]);
+// Fetch the blog
+$stmt = $pdo->prepare(
+    "SELECT b.id, b.title, b.content, b.created_at, u.username
+     FROM blogs b
+     JOIN users u ON b.user_id = u.id
+     WHERE b.id = ?"
+);
+
+$stmt->execute([$blog_id]);
+
 $blog = $stmt->fetch();
+
+// Check whether the blog exists
 if (!$blog) {
-    set_flash('error', 'Blog not found.');
-    header('Location: index.php');
-    exit;
+    die('Blog not found.');
 }
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
-<article class="single-blog">
-  <h2><?= sanitize($blog['title']) ?></h2>
-  <div class="meta">by <?= sanitize($blog['username']) ?> on <?= sanitize($blog['created_at']) ?></div>
-  <div class="content"><?= nl2br(sanitize($blog['content'])) ?></div>
-</article>
+<section class="single-blog">
+
+    <a href="explore.php" class="back-link">
+    ← Back to Explore
+    </a>
+
+    <h2>
+        <?= sanitize($blog['title']) ?>
+    </h2>
+
+    <div class="meta">
+
+        <span>
+            By <?= sanitize($blog['username']) ?>
+        </span>
+
+        <span>•</span>
+
+        <span>
+            <?= date('M d, Y', strtotime($blog['created_at'])) ?>
+        </span>
+
+    </div>
+
+    <div class="content">
+
+        <?= nl2br(sanitize($blog['content'])) ?>
+
+    </div>
+
+</section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
