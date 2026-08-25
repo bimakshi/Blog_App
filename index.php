@@ -7,7 +7,8 @@ $stmt = $pdo->query(
     "SELECT b.id, b.title, b.created_at, u.username
      FROM blogs b
      JOIN users u ON b.user_id = u.id
-     ORDER BY b.created_at DESC"
+     ORDER BY b.created_at DESC
+     LIMIT 3"
 );
 
 $blogs = $stmt->fetchAll();
