@@ -2,6 +2,9 @@
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
+// Get search term
+$search = trim($_GET['search'] ?? '');
+
 // Fetch all blogs
 $stmt = $pdo->query(
     "SELECT b.id, b.title, b.created_at, u.username
@@ -16,6 +19,17 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <section class="latest-section">
+
+    <div class="explore-search">
+
+    <input
+        type="text"
+        id="storySearch"
+        placeholder="Search stories..."
+        autocomplete="off"
+    >
+
+</div>
 
     <div class="section-heading">
 
@@ -70,7 +84,11 @@ require_once __DIR__ . '/includes/header.php';
 
             <?php foreach ($blogs as $b): ?>
 
-                <article class="blog-card">
+                <article
+    class="blog-card"
+    data-title="<?= sanitize($b['title']) ?>"
+    data-author="<?= sanitize($b['username']) ?>"
+>
 
                     <div class="blog-card-content">
 
@@ -115,8 +133,67 @@ require_once __DIR__ . '/includes/header.php';
 
         </div>
 
+        <div id="noSearchResults" class="empty-state" style="display: none;">
+
+    <h4>No stories found</h4>
+
+    <p>
+        We couldn't find any stories matching your search.
+    </p>
+
+</div>
+
     <?php endif; ?>
 
 </section>
+
+<script>
+
+const searchInput = document.getElementById('storySearch');
+const blogCards = document.querySelectorAll('.blog-card');
+const noSearchResults = document.getElementById('noSearchResults');
+
+searchInput.addEventListener('input', function () {
+
+    const searchText = this.value.toLowerCase().trim();
+
+    let visibleCount = 0;
+
+    blogCards.forEach(function (card) {
+
+        const title = card.dataset.title.toLowerCase();
+        const author = card.dataset.author.toLowerCase();
+
+        const matches =
+            title.includes(searchText) ||
+            author.includes(searchText);
+
+        if (matches) {
+
+            card.style.display = '';
+
+            visibleCount++;
+
+        } else {
+
+            card.style.display = 'none';
+
+        }
+
+    });
+
+    if (visibleCount === 0 && searchText !== '') {
+
+        noSearchResults.style.display = 'block';
+
+    } else {
+
+        noSearchResults.style.display = 'none';
+
+    }
+
+});
+
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
