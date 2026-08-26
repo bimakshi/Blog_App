@@ -36,6 +36,16 @@ if (!$blog) {
 }
 
 
+// Get available categories
+$categoryStmt = $pdo->query(
+    "SELECT id, name
+     FROM categories
+     ORDER BY name ASC"
+);
+
+$categories = $categoryStmt->fetchAll();
+
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -44,30 +54,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
+    $category_id = filter_input(
+        INPUT_POST,
+        'category_id',
+        FILTER_VALIDATE_INT
+    );
 
     // Validate input
-    if ($title === '' || $content === '') {
+    if ($title === '' || $content === '' || !$category_id) {
 
-        set_flash('error', 'Please enter both a story title and content.');
+        set_flash(
+            'error',
+            'Please enter a story title, content, and select a category.'
+        );
 
     } else {
 
         // Update the blog
         $stmt = $pdo->prepare(
             "UPDATE blogs
-             SET title = ?, content = ?, updated_at = NOW()
+             SET category_id = ?, title = ?, content = ?, updated_at = NOW()
              WHERE id = ?
              AND user_id = ?"
         );
 
         $stmt->execute([
+            $category_id,
             $title,
             $content,
             $id,
             current_user_id()
         ]);
-
-        set_flash('success', 'Your story has been updated.');
 
         redirect('myblogs.php');
     }
@@ -75,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Keep the user's entered values if validation fails
     $blog['title'] = $title;
     $blog['content'] = $content;
+    $blog['category_id'] = $category_id;
 }
 
 require_once __DIR__ . '/includes/header.php';
@@ -119,6 +137,38 @@ require_once __DIR__ . '/includes/header.php';
                     value="<?= sanitize($blog['title']) ?>"
                     required
                 >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="category">
+                    Category
+                </label>
+
+                <select
+                    id="category"
+                    name="category_id"
+                    required
+                >
+
+                    <option value="">
+                        Select a category
+                    </option>
+
+                    <?php foreach ($categories as $category): ?>
+
+                        <option
+                            value="<?= $category['id'] ?>"
+                            <?= ((int)($blog['category_id'] ?? 0) === (int)$category['id']) ? 'selected' : '' ?>
+                        >
+                            <?= sanitize($category['name']) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
 
             </div>
 

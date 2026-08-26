@@ -4,12 +4,18 @@ require_once __DIR__ . '/includes/functions.php';
 
 require_login();
 
-// Get current user's blogs
+// Get current user's blogs with category
 $stmt = $pdo->prepare(
-    "SELECT *
-     FROM blogs
-     WHERE user_id = ?
-     ORDER BY created_at DESC"
+    "SELECT b.id,
+            b.title,
+            b.content,
+            b.created_at,
+            b.updated_at,
+            c.name AS category_name
+     FROM blogs b
+     LEFT JOIN categories c ON b.category_id = c.id
+     WHERE b.user_id = ?
+     ORDER BY b.created_at DESC"
 );
 
 $stmt->execute([current_user_id()]);
@@ -33,6 +39,10 @@ require_once __DIR__ . '/includes/header.php';
                 Manage and edit the stories you have shared with the BlogNest community.
             </p>
         </div>
+
+        <a href="create.php" class="my-blogs-write-btn">
+            Write a Story
+        </a>
 
     </div>
 
@@ -63,9 +73,21 @@ require_once __DIR__ . '/includes/header.php';
 
                     <div class="my-blog-card-content">
 
-                        <span class="my-blog-label">
-                            YOUR STORY
-                        </span>
+                        <div class="my-blog-card-top">
+
+                            <span class="my-blog-label">
+                                YOUR STORY
+                            </span>
+
+                            <?php if (!empty($b['category_name'])): ?>
+
+                                <span class="my-blog-category">
+                                    <?= sanitize($b['category_name']) ?>
+                                </span>
+
+                            <?php endif; ?>
+
+                        </div>
 
                         <h3>
                             <?= sanitize($b['title']) ?>
@@ -116,30 +138,32 @@ require_once __DIR__ . '/includes/header.php';
                             </a>
 
                             <form
-    method="post"
-    action="delete.php"
-    class="my-blog-delete-form"
-    onsubmit="return openDeleteModal(this);"
->
-    <input
-        type="hidden"
-        name="csrf_token"
-        value="<?= csrf_token() ?>"
-    >
+                                method="post"
+                                action="delete.php"
+                                class="my-blog-delete-form"
+                                onsubmit="return openDeleteModal(this);"
+                            >
 
-    <input
-        type="hidden"
-        name="id"
-        value="<?= $b['id'] ?>"
-    >
+                                <input
+                                    type="hidden"
+                                    name="csrf_token"
+                                    value="<?= csrf_token() ?>"
+                                >
 
-    <button
-        type="submit"
-        class="my-blog-delete"
-    >
-        Delete
-    </button>
-</form>
+                                <input
+                                    type="hidden"
+                                    name="id"
+                                    value="<?= $b['id'] ?>"
+                                >
+
+                                <button
+                                    type="submit"
+                                    class="my-blog-delete"
+                                >
+                                    Delete
+                                </button>
+
+                            </form>
 
                         </div>
 
@@ -155,14 +179,19 @@ require_once __DIR__ . '/includes/header.php';
 
 </section>
 
+
+<!-- Delete Confirmation Modal -->
+
 <div id="deleteModal" class="delete-modal">
 
     <div class="delete-modal-content">
 
-        <h3>Delete Story?</h3>
+        <h3>
+            Delete Story?
+        </h3>
 
         <p>
-            Are you sure you want to delete this story? <br>
+            Are you sure you want to delete this story?
             This action cannot be undone.
         </p>
 
@@ -189,6 +218,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
 </div>
+
 
 <script>
 
@@ -219,5 +249,6 @@ function confirmDelete() {
 }
 
 </script>
+
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -5,29 +5,41 @@ require_once __DIR__ . '/includes/functions.php';
 // Only logged-in users can create stories
 require_login();
 
+// Get available categories
+$categoryStmt = $pdo->query(
+    "SELECT id, name
+     FROM categories
+     ORDER BY name ASC"
+);
+
+$categories = $categoryStmt->fetchAll();
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     check_csrf();
 
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
+    $category_id = filter_input(INPUT_POST, 'category_id', FILTER_VALIDATE_INT);
 
     // Validate input
-    if ($title === '' || $content === '') {
+    if ($title === '' || $content === '' || !$category_id) {
 
-        set_flash('error', 'Please enter both a story title and content.');
+        set_flash('error', 'Please enter a title, content, and select a category.');
 
     } else {
 
         $stmt = $pdo->prepare(
-            "INSERT INTO blogs (user_id, title, content) VALUES (?, ?, ?)"
-        );
+    "INSERT INTO blogs (user_id, category_id, title, content)
+     VALUES (?, ?, ?, ?)"
+);
 
-        $stmt->execute([
-            current_user_id(),
-            $title,
-            $content
-        ]);
+$stmt->execute([
+    current_user_id(),
+    $category_id,
+    $title,
+    $content
+]);
 
         set_flash('success', 'Your story has been published.');
 
@@ -97,6 +109,36 @@ require_once __DIR__ . '/includes/header.php';
 
             </div>
 
+            <div class="form-group">
+
+    <label for="category">
+        Category
+    </label>
+
+    <select
+        id="category"
+        name="category_id"
+        required
+    >
+
+        <option value="">
+            Select a category
+        </option>
+
+        <?php foreach ($categories as $category): ?>
+
+            <option
+                value="<?= $category['id'] ?>"
+                <?= ((int)($category_id ?? 0) === (int)$category['id']) ? 'selected' : '' ?>
+            >
+                <?= sanitize($category['name']) ?>
+            </option>
+
+        <?php endforeach; ?>
+
+    </select>
+
+</div>
 
             <div class="write-actions">
 
