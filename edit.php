@@ -31,69 +31,240 @@ $blog = $stmt->fetch();
 
 // Blog doesn't exist or doesn't belong to this user
 if (!$blog) {
-    set_flash('error', 'Story not found or you do not have permission to edit it.');
+    set_flash(
+        'error',
+        'Story not found or you do not have permission to edit it.'
+    );
+
     redirect('myblogs.php');
 }
 
 
-// Get available categories
-$categoryStmt = $pdo->query(
+// Get categories
+$category_stmt = $pdo->query(
     "SELECT id, name
      FROM categories
      ORDER BY name ASC"
 );
 
-$categories = $categoryStmt->fetchAll();
+$categories = $category_stmt->fetchAll();
 
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Check CSRF token
     check_csrf();
 
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
+
     $category_id = filter_input(
         INPUT_POST,
         'category_id',
         FILTER_VALIDATE_INT
     );
 
-    // Validate input
-    if ($title === '' || $content === '' || !$category_id) {
+    $new_image_name = $blog['image'] ?? null;
+    $old_image_name = $blog['image'] ?? null;
+
+    // Validate title, content and category
+    if ($title === '' || $content === '') {
 
         set_flash(
             'error',
-            'Please enter a story title, content, and select a category.'
+            'Please enter both a story title and content.'
+        );
+
+    } elseif (!$category_id) {
+
+        set_flash(
+            'error',
+            'Please select a category.'
         );
 
     } else {
 
-        // Update the blog
-        $stmt = $pdo->prepare(
-            "UPDATE blogs
-             SET category_id = ?, title = ?, content = ?, updated_at = NOW()
-             WHERE id = ?
-             AND user_id = ?"
-        );
+        // Check whether a new image was uploaded
+        $has_new_image =
+            isset($_FILES['image']) &&
+            $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE;
 
-        $stmt->execute([
-            $category_id,
-            $title,
-            $content,
-            $id,
-            current_user_id()
-        ]);
 
-        redirect('myblogs.php');
+        if ($has_new_image) {
+
+            $image = $_FILES['image'];
+
+            // Check upload error
+            if ($image['error'] !== UPLOAD_ERR_OK) {
+
+                set_flash(
+                    'error',
+                    'There was a problem uploading your image.'
+                );
+
+            } else {
+
+                // Maximum size: 5 MB
+                $max_size = 5 * 1024 * 1024;
+
+                // Allowed extensions
+                $allowed_extensions = [
+                    'jpg',
+                    'jpeg',
+                    'png',
+                    'webp'
+                ];
+
+                // Get extension
+                $extension = strtolower(
+                    pathinfo(
+                        $image['name'],
+                        PATHINFO_EXTENSION
+                    )
+                );
+
+                // Validate size
+                if ($image['size'] > $max_size) {
+
+                    set_flash(
+                        'error',
+                        'Image size must be 5 MB or smaller.'
+                    );
+
+                // Validate extension
+                } elseif (
+                    !in_array(
+                        $extension,
+                        $allowed_extensions,
+                        true
+                    )
+                ) {
+
+                    set_flash(
+                        'error',
+                        'Only JPG, JPEG, PNG, and WebP images are allowed.'
+                    );
+
+                } else {
+
+                    // Verify actual image
+                    $image_info = getimagesize(
+                        $image['tmp_name']
+                    );
+
+                    if ($image_info === false) {
+
+                        set_flash(
+                            'error',
+                            'Please upload a valid image file.'
+                        );
+
+                    } else {
+
+                        // Generate unique filename
+                        $new_image_name =
+                            bin2hex(random_bytes(16))
+                            . '.'
+                            . $extension;
+
+                        $upload_directory =
+                            __DIR__ . '/uploads/blogs/';
+
+                        if (!is_dir($upload_directory)) {
+
+                            mkdir(
+                                $upload_directory,
+                                0755,
+                                true
+                            );
+                        }
+
+                        $upload_path =
+                            $upload_directory . $new_image_name;
+
+
+                        if (!move_uploaded_file(
+                            $image['tmp_name'],
+                            $upload_path
+                        )) {
+
+                            set_flash(
+                                'error',
+                                'Unable to save the uploaded image.'
+                            );
+
+                            $new_image_name = $old_image_name;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // Update blog if validation succeeded
+        if (
+            $title !== '' &&
+            $content !== '' &&
+            $category_id &&
+            (!$has_new_image || $new_image_name !== $old_image_name || empty($old_image_name))
+        ) {
+
+            $stmt = $pdo->prepare(
+                "UPDATE blogs
+                 SET title = ?,
+                     content = ?,
+                     category_id = ?,
+                     image = ?,
+                     updated_at = NOW()
+                 WHERE id = ?
+                 AND user_id = ?"
+            );
+
+            $stmt->execute([
+                $title,
+                $content,
+                $category_id,
+                $new_image_name,
+                $id,
+                current_user_id()
+            ]);
+
+
+            // Delete old image after successful replacement
+            if (
+                $has_new_image &&
+                !empty($old_image_name) &&
+                $new_image_name !== $old_image_name
+            ) {
+
+                $old_image_path =
+                    __DIR__ . '/uploads/blogs/' . $old_image_name;
+
+                if (file_exists($old_image_path)) {
+                    unlink($old_image_path);
+                }
+            }
+
+
+            set_flash(
+                'success',
+                'Your story has been updated.'
+            );
+
+            redirect('myblogs.php');
+        }
     }
 
-    // Keep the user's entered values if validation fails
+
+    // Keep entered values if validation fails
     $blog['title'] = $title;
     $blog['content'] = $content;
     $blog['category_id'] = $category_id;
 }
+
+
+// Get flash message
+$flash = get_flash();
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -102,9 +273,13 @@ require_once __DIR__ . '/includes/header.php';
 
     <div class="write-header">
 
-        <span class="write-label">EDIT YOUR STORY</span>
+        <span class="write-label">
+            EDIT YOUR STORY
+        </span>
 
-        <h2>Edit Story</h2>
+        <h2>
+            Edit Story
+        </h2>
 
         <p>
             Update your story and keep sharing your ideas with the BlogNest community.
@@ -112,9 +287,14 @@ require_once __DIR__ . '/includes/header.php';
 
     </div>
 
+
     <div class="write-card">
 
-        <form method="post" class="write-form">
+        <form
+            method="post"
+            class="write-form"
+            enctype="multipart/form-data"
+        >
 
             <input
                 type="hidden"
@@ -122,6 +302,8 @@ require_once __DIR__ . '/includes/header.php';
                 value="<?= csrf_token() ?>"
             >
 
+
+            <!-- Story Title -->
 
             <div class="form-group">
 
@@ -141,14 +323,16 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
 
+            <!-- Category -->
+
             <div class="form-group">
 
-                <label for="category">
+                <label for="category_id">
                     Category
                 </label>
 
                 <select
-                    id="category"
+                    id="category_id"
                     name="category_id"
                     required
                 >
@@ -161,7 +345,9 @@ require_once __DIR__ . '/includes/header.php';
 
                         <option
                             value="<?= $category['id'] ?>"
-                            <?= ((int)($blog['category_id'] ?? 0) === (int)$category['id']) ? 'selected' : '' ?>
+                            <?= (
+                                $blog['category_id'] == $category['id']
+                            ) ? 'selected' : '' ?>
                         >
                             <?= sanitize($category['name']) ?>
                         </option>
@@ -172,6 +358,73 @@ require_once __DIR__ . '/includes/header.php';
 
             </div>
 
+
+            <!-- Current Image -->
+
+            <?php if (!empty($blog['image'])): ?>
+
+                <div class="form-group">
+
+                    <label>
+                        Current Cover Image
+                    </label>
+
+                    <div class="edit-current-image">
+
+                        <img
+                            src="uploads/blogs/<?= sanitize($blog['image']) ?>"
+                            alt="<?= sanitize($blog['title']) ?>"
+                        >
+
+                    </div>
+
+                </div>
+
+            <?php endif; ?>
+
+
+            <!-- New Image -->
+
+            <div class="form-group">
+
+    <label for="image">
+        Change Cover Image
+    </label>
+
+    <label
+        for="image"
+        class="image-upload-box"
+    >
+
+        <span class="image-upload-icon">
+            ↑
+        </span>
+
+        <span class="image-upload-title">
+            Choose a new cover image
+        </span><br>
+
+        <span class="image-upload-text">
+            Leave empty to keep the current image
+        </span><br>
+
+        <span class="image-upload-size">
+            JPG, JPEG, PNG or WebP · Maximum 5 MB
+        </span>
+
+    </label>
+
+    <input
+        type="file"
+        id="image"
+        name="image"
+        accept=".jpg,.jpeg,.png,.webp"
+        class="image-file-input"
+    >
+
+</div>
+
+            <!-- Story Content -->
 
             <div class="form-group">
 
@@ -190,13 +443,18 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
 
+            <!-- Actions -->
+
             <div class="write-actions">
 
                 <span class="draft-note">
                     Your changes will be saved immediately.
                 </span>
 
-                <button type="submit" class="publish-btn">
+                <button
+                    type="submit"
+                    class="publish-btn"
+                >
                     Update Story
                 </button>
 

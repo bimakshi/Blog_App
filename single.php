@@ -3,16 +3,20 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
 // Get blog ID from the URL
-$blog_id = $_GET['id'] ?? null;
+$blog_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-// Check that an ID was provided
-if ($blog_id === null) {
+// Check that a valid ID was provided
+if (!$blog_id) {
     die('Blog not found.');
 }
 
-// Fetch the blog with category
+// Fetch the blog with category and image
 $stmt = $pdo->prepare(
-    "SELECT b.id, b.title, b.content, b.created_at,
+    "SELECT b.id,
+            b.title,
+            b.content,
+            b.image,
+            b.created_at,
             u.username,
             c.name AS category_name
      FROM blogs b
@@ -36,7 +40,7 @@ require_once __DIR__ . '/includes/header.php';
 <section class="single-blog">
 
     <a href="explore.php" class="back-link">
-        ←  Back to Explore
+        ← Back to Explore
     </a>
 
 
@@ -73,7 +77,18 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
 
-    <div class="single-blog-divider"></div>
+    <?php if (!empty($blog['image'])): ?>
+
+        <div class="single-blog-image">
+
+            <img
+                src="uploads/blogs/<?= sanitize($blog['image']) ?>"
+                alt="<?= sanitize($blog['title']) ?>"
+            >
+
+        </div>
+
+    <?php endif; ?>
 
 
     <div class="content">

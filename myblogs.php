@@ -4,11 +4,12 @@ require_once __DIR__ . '/includes/functions.php';
 
 require_login();
 
-// Get current user's blogs with category
+// Get current user's blogs with category and image
 $stmt = $pdo->prepare(
     "SELECT b.id,
             b.title,
             b.content,
+            b.image,
             b.created_at,
             b.updated_at,
             c.name AS category_name
@@ -40,10 +41,6 @@ require_once __DIR__ . '/includes/header.php';
             </p>
         </div>
 
-        <a href="create.php" class="my-blogs-write-btn">
-            Write a Story
-        </a>
-
     </div>
 
 
@@ -71,6 +68,20 @@ require_once __DIR__ . '/includes/header.php';
 
                 <article class="my-blog-card">
 
+                    <?php if (!empty($b['image'])): ?>
+
+                        <div class="my-blog-card-image">
+
+                            <img
+                                src="uploads/blogs/<?= sanitize($b['image']) ?>"
+                                alt="<?= sanitize($b['title']) ?>"
+                            >
+
+                        </div>
+
+                    <?php endif; ?>
+
+
                     <div class="my-blog-card-content">
 
                         <div class="my-blog-card-top">
@@ -89,9 +100,11 @@ require_once __DIR__ . '/includes/header.php';
 
                         </div>
 
+
                         <h3>
                             <?= sanitize($b['title']) ?>
                         </h3>
+
 
                         <div class="my-blog-meta">
 
@@ -113,13 +126,17 @@ require_once __DIR__ . '/includes/header.php';
 
                         </div>
 
+
                         <p class="my-blog-preview">
+
                             <?= sanitize(substr($b['content'], 0, 250)) ?>
 
                             <?php if (strlen($b['content']) > 250): ?>
                                 ...
                             <?php endif; ?>
+
                         </p>
+
 
                         <div class="my-blog-actions">
 

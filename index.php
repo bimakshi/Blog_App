@@ -4,9 +4,15 @@ require_once __DIR__ . '/includes/functions.php';
 
 // Fetch latest blogs
 $stmt = $pdo->query(
-    "SELECT b.id, b.title, b.created_at, u.username
+    "SELECT b.id,
+            b.title,
+            b.created_at,
+            b.image,
+            u.username,
+            c.name AS category_name
      FROM blogs b
      JOIN users u ON b.user_id = u.id
+     LEFT JOIN categories c ON b.category_id = c.id
      ORDER BY b.created_at DESC
      LIMIT 3"
 );
@@ -17,6 +23,7 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- Hero Section -->
+
 <section class="hero">
 
     <div class="hero-content">
@@ -66,11 +73,13 @@ require_once __DIR__ . '/includes/header.php';
 
 
 <!-- Latest Blogs -->
+
 <section id="latest-blogs" class="latest-section">
 
     <div class="section-heading">
 
         <div>
+
             <span class="section-label">
                 FROM OUR COMMUNITY
             </span>
@@ -78,6 +87,7 @@ require_once __DIR__ . '/includes/header.php';
             <h3>
                 Latest Articles
             </h3>
+
         </div>
 
         <span class="article-count">
@@ -123,11 +133,42 @@ require_once __DIR__ . '/includes/header.php';
 
                 <article class="blog-card">
 
+                    <!-- Blog Image -->
+
+                    <?php if (!empty($b['image'])): ?>
+
+                        <div class="blog-card-image">
+
+                            <img
+                                src="uploads/blogs/<?= sanitize($b['image']) ?>"
+                                alt="<?= sanitize($b['title']) ?>"
+                            >
+
+                        </div>
+
+                    <?php endif; ?>
+
+
                     <div class="blog-card-content">
 
-                        <span class="blog-card-label">
-                            ARTICLE
-                        </span>
+                        <!-- Article + Category -->
+
+                        <div class="blog-card-top">
+
+                            <span class="blog-card-label">
+                                ARTICLE
+                            </span>
+
+                            <?php if (!empty($b['category_name'])): ?>
+
+                                <span class="blog-card-category">
+                                    <?= sanitize($b['category_name']) ?>
+                                </span>
+
+                            <?php endif; ?>
+
+                        </div>
+
 
                         <h4>
 
@@ -136,6 +177,7 @@ require_once __DIR__ . '/includes/header.php';
                             </a>
 
                         </h4>
+
 
                         <div class="blog-card-meta">
 
@@ -150,6 +192,7 @@ require_once __DIR__ . '/includes/header.php';
                             </span>
 
                         </div>
+
 
                         <a
                             href="single.php?id=<?= $b['id'] ?>"

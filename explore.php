@@ -2,24 +2,17 @@
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
-// Get all categories
-$categoryStmt = $pdo->query(
-    "SELECT id, name
-     FROM categories
-     ORDER BY name ASC"
-);
+// Get search term
+$search = trim($_GET['search'] ?? '');
 
-$categories = $categoryStmt->fetchAll();
-
-
-// Fetch all blogs with their categories
+// Fetch all blogs
 $stmt = $pdo->query(
     "SELECT b.id,
             b.title,
             b.created_at,
+            b.image,
             u.username,
-            c.name AS category_name,
-            c.id AS category_id
+            c.name AS category_name
      FROM blogs b
      JOIN users u ON b.user_id = u.id
      LEFT JOIN categories c ON b.category_id = c.id
@@ -33,7 +26,21 @@ require_once __DIR__ . '/includes/header.php';
 
 <section class="latest-section">
 
-    <!-- Section Heading -->
+    <!-- Search -->
+
+    <div class="explore-search">
+
+        <input
+            type="text"
+            id="storySearch"
+            placeholder="Search stories..."
+            autocomplete="off"
+        >
+
+    </div>
+
+
+    <!-- Heading -->
 
     <div class="section-heading">
 
@@ -52,53 +59,6 @@ require_once __DIR__ . '/includes/header.php';
         <span class="article-count">
             <?= count($blogs) ?> articles
         </span>
-
-    </div>
-
-    <div class="explore-controls">
-
-    <!-- Category Filters -->
-
-    <?php if (count($categories) > 0): ?>
-
-        <div class="category-filters">
-
-            <button
-                type="button"
-                class="category-filter active"
-                data-category="all"
-            >
-                All
-            </button>
-
-            <?php foreach ($categories as $category): ?>
-
-                <button
-                    type="button"
-                    class="category-filter"
-                    data-category="<?= $category['id'] ?>"
-                >
-                    <?= sanitize($category['name']) ?>
-                </button>
-
-            <?php endforeach; ?>
-
-        </div>
-
-    <?php endif; ?>
-
-        <!-- Search -->
-
-        <div class="explore-search">
-
-            <input
-                type="text"
-                id="storySearch"
-                placeholder="Search stories..."
-                autocomplete="off"
-            >
-
-        </div>
 
     </div>
 
@@ -141,24 +101,41 @@ require_once __DIR__ . '/includes/header.php';
                     class="blog-card"
                     data-title="<?= sanitize($b['title']) ?>"
                     data-author="<?= sanitize($b['username']) ?>"
-                    data-category="<?= $b['category_id'] ?? '' ?>"
                 >
+
+                    <!-- Blog Image -->
+
+                    <?php if (!empty($b['image'])): ?>
+
+                        <div class="blog-card-image">
+
+                            <img
+                                src="uploads/blogs/<?= sanitize($b['image']) ?>"
+                                alt="<?= sanitize($b['title']) ?>"
+                            >
+
+                        </div>
+
+                    <?php endif; ?>
+
 
                     <div class="blog-card-content">
 
                         <div class="blog-card-top">
-                        <span class="blog-card-label">
-                            ARTICLE
-                        </span>
 
-                            <?php if (!empty($b['category_name'])): ?>
+    <span class="blog-card-label">
+        ARTICLE
+    </span>
 
-                                <span class="blog-card-category">
-                                    <?= sanitize($b['category_name']) ?>
-                                </span>
+    <?php if (!empty($b['category_name'])): ?>
 
-                            <?php endif; ?>
-                        </div>
+        <span class="blog-card-category">
+            <?= sanitize($b['category_name']) ?>
+        </span>
+
+    <?php endif; ?>
+
+</div>
 
 
                         <h4>
@@ -201,7 +178,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
 
-        <!-- No Search / Filter Results -->
+        <!-- No search results -->
 
         <div
             id="noSearchResults"
@@ -214,13 +191,12 @@ require_once __DIR__ . '/includes/header.php';
             </h4>
 
             <p>
-                We couldn't find any stories matching your search or category.
+                We couldn't find any stories matching your search.
             </p>
 
         </div>
 
     <?php endif; ?>
-
 
 </section>
 
@@ -229,101 +205,57 @@ require_once __DIR__ . '/includes/header.php';
 
 const searchInput = document.getElementById('storySearch');
 const blogCards = document.querySelectorAll('.blog-card');
-const categoryFilters = document.querySelectorAll('.category-filter');
 const noSearchResults = document.getElementById('noSearchResults');
 
-let selectedCategory = 'all';
+if (searchInput) {
+
+    searchInput.addEventListener('input', function () {
+
+        const searchText = this.value.toLowerCase().trim();
+
+        let visibleCount = 0;
+
+        blogCards.forEach(function (card) {
+
+            const title = card.dataset.title.toLowerCase();
+            const author = card.dataset.author.toLowerCase();
+
+            const matches =
+                title.includes(searchText) ||
+                author.includes(searchText);
+
+            if (matches) {
+
+                card.style.display = '';
+
+                visibleCount++;
+
+            } else {
+
+                card.style.display = 'none';
+
+            }
+
+        });
 
 
-function filterStories() {
+        if (
+            noSearchResults &&
+            visibleCount === 0 &&
+            searchText !== ''
+        ) {
 
-    const searchText = searchInput.value.toLowerCase().trim();
+            noSearchResults.style.display = 'block';
 
-    let visibleCount = 0;
+        } else if (noSearchResults) {
 
-
-    blogCards.forEach(function (card) {
-
-        const title = card.dataset.title.toLowerCase();
-        const author = card.dataset.author.toLowerCase();
-        const category = card.dataset.category;
-
-
-        // Check search
-        const matchesSearch =
-            title.includes(searchText) ||
-            author.includes(searchText);
-
-
-        // Check category
-        const matchesCategory =
-            selectedCategory === 'all' ||
-            category === selectedCategory;
-
-
-        // Show only if both conditions match
-        if (matchesSearch && matchesCategory) {
-
-            card.style.display = '';
-
-            visibleCount++;
-
-        } else {
-
-            card.style.display = 'none';
+            noSearchResults.style.display = 'none';
 
         }
 
     });
 
-
-    // Show "No stories found"
-    if (visibleCount === 0) {
-
-        noSearchResults.style.display = 'block';
-
-    } else {
-
-        noSearchResults.style.display = 'none';
-
-    }
-
 }
-
-
-// Live search
-searchInput.addEventListener('input', function () {
-
-    filterStories();
-
-});
-
-
-// Category filter
-categoryFilters.forEach(function (button) {
-
-    button.addEventListener('click', function () {
-
-        // Remove active state from all buttons
-        categoryFilters.forEach(function (btn) {
-            btn.classList.remove('active');
-        });
-
-
-        // Add active state to clicked button
-        this.classList.add('active');
-
-
-        // Get selected category
-        selectedCategory = this.dataset.category;
-
-
-        // Filter stories
-        filterStories();
-
-    });
-
-});
 
 </script>
 
