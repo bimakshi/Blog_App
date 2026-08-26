@@ -5,17 +5,37 @@ require_once __DIR__ . '/includes/functions.php';
 // Get search term
 $search = trim($_GET['search'] ?? '');
 
+// Get selected category
+$selected_category = filter_input(
+    INPUT_GET,
+    'category',
+    FILTER_VALIDATE_INT
+);
+
+// Fetch categories
+$category_stmt = $pdo->query(
+    "SELECT id, name
+     FROM categories
+     ORDER BY name ASC"
+);
+
+$categories = $category_stmt->fetchAll();
+
 // Fetch all blogs
 $stmt = $pdo->query(
-    "SELECT b.id,
-            b.title,
-            b.created_at,
-            b.image,
-            u.username,
-            c.name AS category_name
+    "SELECT
+        b.id,
+        b.title,
+        b.created_at,
+        b.image,
+        u.username,
+        c.id AS category_id,
+        c.name AS category_name
      FROM blogs b
-     JOIN users u ON b.user_id = u.id
-     LEFT JOIN categories c ON b.category_id = c.id
+     JOIN users u
+        ON b.user_id = u.id
+     LEFT JOIN categories c
+        ON b.category_id = c.id
      ORDER BY b.created_at DESC"
 );
 
@@ -26,19 +46,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <section class="latest-section">
 
-    <!-- Search -->
-
-    <div class="explore-search">
-
-        <input
-            type="text"
-            id="storySearch"
-            placeholder="Search stories..."
-            autocomplete="off"
-        >
-
-    </div>
-
+    <!-- Explore Controls -->
 
     <!-- Heading -->
 
@@ -56,12 +64,56 @@ require_once __DIR__ . '/includes/header.php';
 
         </div>
 
-        <span class="article-count">
+        <span class="article-count" id="articleCount">
             <?= count($blogs) ?> articles
         </span>
 
     </div>
 
+    <div class="explore-controls">
+
+        <!-- Categories -->
+
+        <div class="category-filters">
+
+            <button
+                type="button"
+                class="category-filter active"
+                data-category="all"
+            >
+                All
+            </button>
+
+            <?php foreach ($categories as $category): ?>
+
+                <button
+                    type="button"
+                    class="category-filter"
+                    data-category="<?= $category['id'] ?>"
+                >
+                    <?= sanitize($category['name']) ?>
+                </button>
+
+            <?php endforeach; ?>
+
+        </div>
+
+
+        <!-- Search -->
+
+        <div class="explore-search">
+
+            <input
+                type="text"
+                id="storySearch"
+                placeholder="Search stories..."
+                autocomplete="off"
+                value="<?= sanitize($search) ?>"
+            >
+
+        </div>
+
+    </div>
 
     <?php if (count($blogs) === 0): ?>
 
@@ -101,6 +153,7 @@ require_once __DIR__ . '/includes/header.php';
                     class="blog-card"
                     data-title="<?= sanitize($b['title']) ?>"
                     data-author="<?= sanitize($b['username']) ?>"
+                    data-category="<?= $b['category_id'] ?? '' ?>"
                 >
 
                     <!-- Blog Image -->
@@ -119,24 +172,30 @@ require_once __DIR__ . '/includes/header.php';
                     <?php endif; ?>
 
 
+                    <!-- Card Content -->
+
                     <div class="blog-card-content">
+
+                        <!-- Article + Category -->
 
                         <div class="blog-card-top">
 
-    <span class="blog-card-label">
-        ARTICLE
-    </span>
+                            <span class="blog-card-label">
+                                ARTICLE
+                            </span>
 
-    <?php if (!empty($b['category_name'])): ?>
+                            <?php if (!empty($b['category_name'])): ?>
 
-        <span class="blog-card-category">
-            <?= sanitize($b['category_name']) ?>
-        </span>
+                                <span class="blog-card-category">
+                                    <?= sanitize($b['category_name']) ?>
+                                </span>
 
-    <?php endif; ?>
+                            <?php endif; ?>
 
-</div>
+                        </div>
 
+
+                        <!-- Title -->
 
                         <h4>
 
@@ -147,6 +206,8 @@ require_once __DIR__ . '/includes/header.php';
                         </h4>
 
 
+                        <!-- Author + Date -->
+
                         <div class="blog-card-meta">
 
                             <span>
@@ -156,11 +217,16 @@ require_once __DIR__ . '/includes/header.php';
                             <span>•</span>
 
                             <span>
-                                <?= date('M d, Y', strtotime($b['created_at'])) ?>
+                                <?= date(
+                                    'M d, Y',
+                                    strtotime($b['created_at'])
+                                ) ?>
                             </span>
 
                         </div>
 
+
+                        <!-- Read More -->
 
                         <a
                             href="single.php?id=<?= $b['id'] ?>"
@@ -178,7 +244,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
 
-        <!-- No search results -->
+        <!-- No Search / Filter Results -->
 
         <div
             id="noSearchResults"
@@ -191,7 +257,7 @@ require_once __DIR__ . '/includes/header.php';
             </h4>
 
             <p>
-                We couldn't find any stories matching your search.
+                We couldn't find any stories matching your search or category.
             </p>
 
         </div>
@@ -205,57 +271,134 @@ require_once __DIR__ . '/includes/header.php';
 
 const searchInput = document.getElementById('storySearch');
 const blogCards = document.querySelectorAll('.blog-card');
+const categoryButtons = document.querySelectorAll('.category-filter');
 const noSearchResults = document.getElementById('noSearchResults');
+const articleCount = document.getElementById('articleCount');
 
-if (searchInput) {
-
-    searchInput.addEventListener('input', function () {
-
-        const searchText = this.value.toLowerCase().trim();
-
-        let visibleCount = 0;
-
-        blogCards.forEach(function (card) {
-
-            const title = card.dataset.title.toLowerCase();
-            const author = card.dataset.author.toLowerCase();
-
-            const matches =
-                title.includes(searchText) ||
-                author.includes(searchText);
-
-            if (matches) {
-
-                card.style.display = '';
-
-                visibleCount++;
-
-            } else {
-
-                card.style.display = 'none';
-
-            }
-
-        });
+let selectedCategory = 'all';
 
 
-        if (
-            noSearchResults &&
-            visibleCount === 0 &&
-            searchText !== ''
-        ) {
+function filterBlogs() {
 
-            noSearchResults.style.display = 'block';
+    const searchText = searchInput
+        ? searchInput.value.toLowerCase().trim()
+        : '';
 
-        } else if (noSearchResults) {
+    let visibleCount = 0;
 
-            noSearchResults.style.display = 'none';
+
+    blogCards.forEach(function (card) {
+
+        const title = card.dataset.title
+            ? card.dataset.title.toLowerCase()
+            : '';
+
+        const author = card.dataset.author
+            ? card.dataset.author.toLowerCase()
+            : '';
+
+        const category = card.dataset.category || '';
+
+
+        const matchesSearch =
+            title.includes(searchText) ||
+            author.includes(searchText);
+
+
+        const matchesCategory =
+            selectedCategory === 'all' ||
+            category === selectedCategory;
+
+
+        if (matchesSearch && matchesCategory) {
+
+            card.style.display = '';
+            visibleCount++;
+
+        } else {
+
+            card.style.display = 'none';
 
         }
 
     });
 
+
+    // Update article count
+
+    if (articleCount) {
+
+        articleCount.textContent =
+            visibleCount +
+            (visibleCount === 1 ? ' article' : ' articles');
+
+    }
+
+
+    // Show empty state
+
+    if (
+        noSearchResults &&
+        visibleCount === 0
+    ) {
+
+        noSearchResults.style.display = 'block';
+
+    } else if (noSearchResults) {
+
+        noSearchResults.style.display = 'none';
+
+    }
+
 }
+
+
+/* Search */
+
+if (searchInput) {
+
+    searchInput.addEventListener(
+        'input',
+        filterBlogs
+    );
+
+}
+
+
+/* Category buttons */
+
+categoryButtons.forEach(function (button) {
+
+    button.addEventListener(
+        'click',
+        function () {
+
+            // Remove active from all buttons
+
+            categoryButtons.forEach(function (btn) {
+
+                btn.classList.remove('active');
+
+            });
+
+
+            // Add active to clicked button
+
+            this.classList.add('active');
+
+
+            // Get selected category
+
+            selectedCategory =
+                this.dataset.category;
+
+
+            filterBlogs();
+
+        }
+    );
+
+});
 
 </script>
 
