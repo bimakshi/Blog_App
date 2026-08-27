@@ -289,9 +289,9 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
 
-            <!-- Cover Image -->
+           <!-- Cover Image -->
 
-            <div class="form-group">
+<div class="form-group">
 
     <label for="image">
         Cover Image <span>*</span>
@@ -306,13 +306,23 @@ require_once __DIR__ . '/includes/header.php';
             ↑
         </span>
 
-        <span class="image-upload-title">
+        <span
+            class="image-upload-title"
+            id="imageUploadTitle"
+        >
             Choose a cover image
-        </span><br>
+        </span>
 
-        <span class="image-upload-text">
+        <br>
+
+        <span
+            class="image-upload-text"
+            id="imageUploadText"
+        >
             JPG, JPEG, PNG or WebP
-        </span><br>
+        </span>
+
+        <br>
 
         <span class="image-upload-size">
             Maximum size: 5 MB
@@ -328,6 +338,20 @@ require_once __DIR__ . '/includes/header.php';
         required
         class="image-file-input"
     >
+
+    <!-- Image Preview -->
+
+    <div
+        id="imagePreview"
+        class="image-preview"
+        style="display: none;"
+    >
+        <img
+            id="previewImage"
+            src=""
+            alt="Selected cover image"
+        >
+    </div>
 
 </div>
 
@@ -372,5 +396,54 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const imageInput = document.getElementById('image');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const uploadTitle = document.getElementById('imageUploadTitle');
+    const uploadText = document.getElementById('imageUploadText');
+
+    imageInput.addEventListener('change', function () {
+
+        const file = this.files[0];
+
+        if (!file) {
+            imagePreview.style.display = 'none';
+            previewImage.src = '';
+
+            uploadTitle.textContent = 'Choose a cover image';
+            uploadText.textContent = 'JPG, JPEG, PNG or WebP';
+
+            return;
+        }
+
+        // Check that the selected file is an image
+        if (!file.type.startsWith('image/')) {
+            imageInput.value = '';
+            imagePreview.style.display = 'none';
+            previewImage.src = '';
+
+            alert('Please select a valid image file.');
+
+            return;
+        }
+
+        // Create preview
+        const imageURL = URL.createObjectURL(file);
+
+        previewImage.src = imageURL;
+        imagePreview.style.display = 'block';
+
+        // Update upload box text
+        uploadTitle.textContent = file.name;
+        uploadText.textContent = 'Cover image selected';
+
+    });
+
+});
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

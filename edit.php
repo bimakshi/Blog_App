@@ -385,7 +385,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- New Image -->
 
-            <div class="form-group">
+<div class="form-group">
 
     <label for="image">
         Change Cover Image
@@ -394,6 +394,7 @@ require_once __DIR__ . '/includes/header.php';
     <label
         for="image"
         class="image-upload-box"
+        id="imageUploadBox"
     >
 
         <span class="image-upload-icon">
@@ -421,6 +422,21 @@ require_once __DIR__ . '/includes/header.php';
         accept=".jpg,.jpeg,.png,.webp"
         class="image-file-input"
     >
+
+    <!-- Selected Image Preview -->
+    <div
+        id="imagePreviewContainer"
+        class="edit-current-image"
+        style="display: none; margin-top: 15px;"
+    >
+        <img
+            id="imagePreview"
+            src=""
+            alt="Selected cover image"
+        >
+    </div>
+
+    <small id="selectedImageName"></small>
 
 </div>
 
@@ -465,5 +481,45 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
 </section>
+
+<script>
+const imageInput = document.getElementById('image');
+const imagePreview = document.getElementById('imagePreview');
+const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+const selectedImageName = document.getElementById('selectedImageName');
+
+imageInput.addEventListener('change', function () {
+
+    const file = this.files[0];
+
+    if (!file) {
+        imagePreviewContainer.style.display = 'none';
+        selectedImageName.textContent = '';
+        return;
+    }
+
+    // Check that the selected file is an image
+    if (!file.type.startsWith('image/')) {
+        imageInput.value = '';
+        imagePreviewContainer.style.display = 'none';
+        selectedImageName.textContent = '';
+        alert('Please select a valid image file.');
+        return;
+    }
+
+    // Show selected file name
+    selectedImageName.textContent = 'Selected: ' + file.name;
+
+    // Create image preview
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        imagePreview.src = event.target.result;
+        imagePreviewContainer.style.display = 'block';
+    };
+
+    reader.readAsDataURL(file);
+});
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

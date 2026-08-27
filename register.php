@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             set_flash(
                 'success',
-                'Registration successful. Please log in.'
+                'Registration successful. Please sign in.'
             );
 
             redirect('login.php');

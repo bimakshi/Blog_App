@@ -386,7 +386,7 @@ require_once __DIR__ . '/includes/header.php';
                 <p>
 
                     <a href="login.php">
-                        Log in
+                        Sign in
                     </a>
 
                     to join the conversation.
